@@ -1,0 +1,79 @@
+# Importer le module Active Directory
+Import-Module ActiveDirectory
+
+# Créer la fenêtre
+Add-Type -AssemblyName System.Windows.Forms
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Création d'utilisateur Active Directory"
+$form.Size = New-Object System.Drawing.Size(350, 200)
+$form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+$form.MaximizeBox = $false
+
+# Ajouter des champs de texte pour les variables
+$labels = @("Nom", "Prénom")
+$y = 20
+foreach ($label in $labels) {
+    $lbl = New-Object System.Windows.Forms.Label
+    $lbl.Text = $label
+    $lbl.Location = New-Object System.Drawing.Point(10, $y)
+    $form.Controls.Add($lbl)
+
+    $txt = New-Object System.Windows.Forms.TextBox
+    $txt.Name = $label.Replace(" ", "")
+    $txt.Location = New-Object System.Drawing.Point(150, $y)
+    $form.Controls.Add($txt)
+
+    $y += 30
+}
+
+# Ajouter un menu déroulant pour le champ OU avec des noms lisibles
+$lblOU = New-Object System.Windows.Forms.Label
+$lblOU.Text = "chemin"
+$lblOU.Location = New-Object System.Drawing.Point(10, $y)
+$form.Controls.Add($lblOU)
+
+$comboBoxOU = New-Object System.Windows.Forms.ComboBox
+$comboBoxOU.Location = New-Object System.Drawing.Point(150, $y)
+$ouOptions = @{
+    "ELEVE SIO1 SISR" = "OU=BERTRAN_DE_BORN,OU=BTS_SIO,OU=USERS,OU=USERS_STUDENT,OU=BTS_SIO1,OU=STS_SIO1_SISR,DC=gauley,DC=lan"
+    "ELEVE SIO1 SLAM" = "OU=BERTRAN_DE_BORN,OU=BTS_SIO,OU=USERS,OU=USERS_STUDENT,OU=BTS_SIO1,OU=STS_SIO1_SLAM,DC=gauley,DC=lan"
+    "ELEVE SIO2 SISR" = "OU=BERTRAN_DE_BORN,OU=BTS_SIO,OU=USERS,OU=USERS_STUDENT,OU=BTS_SIO2,OU=STS_SIO2_SISR,DC=gauley,DC=lan"
+    "ELEVE SIO2 SLAM" = "OU=BERTRAN_DE_BORN,OU=BTS_SIO,OU=USERS,OU=USERS_STUDENT,OU=BTS_SIO2,OU=STS_SIO2_SLAM,DC=gauley,DC=lan"
+}
+$comboBoxOU.Items.AddRange($ouOptions.Keys)
+$form.Controls.Add($comboBoxOU)
+
+$y += 30
+
+# Ajouter un bouton pour valider
+$button = New-Object System.Windows.Forms.Button
+$button.Text = "add user"
+$button.Location = New-Object System.Drawing.Point(150, $y)
+$form.Controls.Add($button)
+
+# Définir l'action du bouton
+$button.Add_Click({
+    $nom = $form.Controls["Nom"].Text
+    $prenom = $form.Controls["Prénom"].Text
+    $login = ($prenom.Substring(0,1) + "." + $nom).ToLower()
+    $ou = $ouOptions[$comboBoxOU.SelectedItem]
+    $password = ConvertTo-SecureString "P@ssword1234" -AsPlainText -Force
+    $userPrincipalName = "$login@gauley.lan"
+
+    New-ADUser -Name "$prenom $nom" `
+               -GivenName $prenom `
+               -Surname $nom `
+               -SamAccountName $login `
+               -UserPrincipalName $userPrincipalName `
+               -Path $ou `
+               -AccountPassword $password `
+               -Enabled $true `
+               -ChangePasswordAtLogon $true
+
+    [System.Windows.Forms.MessageBox]::Show("Utilisateur créé avec succès!")
+})
+
+# Afficher la fenêtre
+$form.ShowDialog()
+
